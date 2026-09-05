@@ -30,7 +30,7 @@ jobs:
           out="cj2api-go-$GOOS-$GOARCH"
           [ "$GOOS" = windows ] && out="$out.exe"
           go build -trimpath -ldflags="-s -w" -o "dist/$out" .
-          (cd dist && sha256sum "$out" > "$out.sha256")
+          (cd dist && (sha256sum "$out" > "$out.sha256" 2>/dev/null || shasum -a 256 "$out" > "$out.sha256"))
       - shell: bash
         run: |
           gh release create "${{ github.ref_name }}" dist/* --title "${{ github.ref_name }}" --notes "" 2>/dev/null \
