@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -18,16 +19,14 @@ import (
 )
 
 const (
-	defaultModel    = "llama3.1-8B"
-	defaultUpstream = "https://chatjimmy.ai/api/chat"
-	userAgent       = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-	maxBodyBytes    = 1 << 20
-	maxUpstreamLen  = 8 << 20
-	modelsCreated   = 1740000000
+	defaultModel   = "llama3.1-8B"
+	userAgent      = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+	maxBodyBytes   = 1 << 20
+	maxUpstreamLen = 8 << 20
 )
 
 var (
-	upstreamURL   = getEnv("UPSTREAM_URL", defaultUpstream)
+	upstreamURL   = getEnv("UPSTREAM_URL", "https://chatjimmy.ai/api/chat")
 	modelOverride = getEnv("MODEL_OVERRIDE", "")
 	timeoutSec    = getEnvInt("TIMEOUT", 120)
 	httpClient    = &http.Client{
@@ -38,7 +37,6 @@ var (
 			IdleConnTimeout:     90 * time.Second,
 		},
 	}
-	idChars = "abcdefghijklmnopqrstuvwxyz0123456789"
 )
 
 type ChatMessage struct {
@@ -61,17 +59,13 @@ type Usage struct {
 }
 
 type UpstreamStats struct {
-	PrefillTokens *int    `json:"prefill_tokens"`
-	DecodeTokens  *int    `json:"decode_tokens"`
-	TotalTokens   *int    `json:"total_tokens"`
-	DoneReason    *string `json:"done_reason"`
+	PrefillTokens *int `json:"prefill_tokens"`
+	DecodeTokens  *int `json:"decode_tokens"`
+	TotalTokens   *int `json:"total_tokens"`
 }
 
 func getEnv(k, d string) string {
-	if v := os.Getenv(k); v != "" {
-		return v
-	}
-	return d
+	return cmp.Or(os.Getenv(k), d)
 }
 
 func getEnvInt(k string, d int) int {
@@ -93,7 +87,7 @@ func allowedModel() string {
 func generateID() string {
 	b := make([]byte, 24)
 	for i := range b {
-		b[i] = idChars[rand.Intn(len(idChars))]
+		b[i] = "abcdefghijklmnopqrstuvwxyz0123456789"[rand.Intn(36)]
 	}
 	return "chatcmpl-" + string(b)
 }
@@ -151,17 +145,11 @@ func writeErr(w http.ResponseWriter, status int, msg, typ string) {
 
 func fetchUpstream(ctx context.Context, body *ChatRequest) (string, error) {
 	model := body.Model
-	if model == "" {
-		model = defaultModel
-	}
 	topK := 8
 	if body.TopKUndersc != nil {
 		topK = *body.TopKUndersc
 	} else if body.TopKCamel != nil {
 		topK = *body.TopKCamel
-	}
-	if body.Messages == nil || len(body.Messages) == 0 {
-		return "", fmt.Errorf("messages 不能为空")
 	}
 	var sysParts []string
 	chatMsgs := make([]ChatMessage, 0, len(body.Messages))
@@ -320,7 +308,7 @@ func handleModels(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, 200, map[string]any{
 		"object": "list",
 		"data": []any{map[string]any{
-			"id": allowedModel(), "object": "model", "created": modelsCreated,
+			"id": allowedModel(), "object": "model", "created": 1740000000,
 			"owned_by": "system", "permission": []any{},
 		}},
 	})
