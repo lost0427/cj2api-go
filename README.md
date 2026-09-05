@@ -2,7 +2,7 @@
 
 将 [ChatJimmy](https://chatjimmy.ai) 转换为 OpenAI 兼容 API 的 Go 实现，单文件部署，无需 API Key。
 
-由 TypeScript 原版（参考项目：https://github.com/qingchencloud/cj2api）移植而来：接口与行为保持一致，去掉了内置测试页，纯标准库、零第三方依赖。
+由 TypeScript 原版（参考项目：[qingchencloud/cj2api](https://github.com/qingchencloud/cj2api)）移植而来：接口与行为保持一致，去掉了内置测试页，纯标准库、零第三方依赖。
 
 ## 特性
 
