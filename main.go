@@ -27,9 +27,10 @@ const (
 )
 
 var (
-	upstreamURL = getEnv("UPSTREAM_URL", defaultUpstream)
-	timeoutSec  = getEnvInt("TIMEOUT", 120)
-	httpClient  = &http.Client{
+	upstreamURL   = getEnv("UPSTREAM_URL", defaultUpstream)
+	modelOverride = getEnv("MODEL_OVERRIDE", "")
+	timeoutSec    = getEnvInt("TIMEOUT", 120)
+	httpClient    = &http.Client{
 		Timeout: time.Duration(timeoutSec) * time.Second,
 		Transport: &http.Transport{
 			MaxIdleConns:        100,
@@ -80,6 +81,13 @@ func getEnvInt(k string, d int) int {
 		}
 	}
 	return d
+}
+
+func allowedModel() string {
+	if modelOverride != "" {
+		return modelOverride
+	}
+	return defaultModel
 }
 
 func generateID() string {
@@ -241,10 +249,14 @@ func handleChat(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "messages 字段不能为空", "invalid_request_error")
 		return
 	}
-	model := body.Model
-	if model == "" {
-		model = defaultModel
+	allowed := allowedModel()
+	if body.Model == "" {
+		body.Model = allowed
+	} else if body.Model != allowed {
+		writeErr(w, 400, "model 仅支持 "+allowed, "invalid_request_error")
+		return
 	}
+	model := body.Model
 	raw, err := fetchUpstream(r.Context(), &body)
 	if err != nil {
 		writeErr(w, 502, err.Error(), "server_error")
@@ -308,7 +320,7 @@ func handleModels(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, 200, map[string]any{
 		"object": "list",
 		"data": []any{map[string]any{
-			"id": defaultModel, "object": "model", "created": modelsCreated,
+			"id": allowedModel(), "object": "model", "created": modelsCreated,
 			"owned_by": "system", "permission": []any{},
 		}},
 	})

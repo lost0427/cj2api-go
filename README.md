@@ -39,6 +39,7 @@ PORT=8787 ./cj2api-go
 | `PORT` | `8787` | 监听端口 |
 | `UPSTREAM_URL` | `https://chatjimmy.ai/api/chat` | 上游 ChatJimmy 地址 |
 | `TIMEOUT` | `120` | 上游请求超时（秒） |
+| `MODEL_OVERRIDE` | 空 | 非空时服务端只允许该模型，其余 model 均 400 |
 
 ## API 接口
 
